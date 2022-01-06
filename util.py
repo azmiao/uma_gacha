@@ -146,16 +146,18 @@ async def init_up_char(announcement):
         _CURRENT_ARMS_POOL_TITLE = tmp[1]
     else:
         _CURRENT_ARMS_POOL_TITLE = ''
-    POOL_IMG = ''
+    POOL_IMG = []
+    POOL_TIME = ''
     x = [x for x in list(up_char_dict.keys())]
     if _CURRENT_CHAR_POOL_TITLE:
-        POOL_IMG += str(MessageSegment.image(up_char_dict[x[0]]['pool_img']))
+        POOL_IMG.append(str(MessageSegment.image(up_char_dict[x[0]]['pool_img'])))
+        POOL_TIME += str(up_char_dict[x[0]]['time'])
     try:
         if _CURRENT_ARMS_POOL_TITLE:
-            POOL_IMG += str(MessageSegment.image(up_char_dict[x[1]]['pool_img']))
+            POOL_IMG.append(str(MessageSegment.image(up_char_dict[x[1]]['pool_img'])))
     except (IndexError, KeyError):
         pass
-    logger.info(f'成功获取{announcement.game_name}当前up信息...当前up池: {_CURRENT_CHAR_POOL_TITLE} & {_CURRENT_ARMS_POOL_TITLE}')
+    logger.info(f'成功获取{announcement.game_name}当前up信息...当前up池:\n{_CURRENT_CHAR_POOL_TITLE}\n{_CURRENT_ARMS_POOL_TITLE}')
     for key in up_char_dict.keys():
         for star in up_char_dict[key]['up_char'].keys():
             up_char_lst = []
@@ -166,7 +168,7 @@ async def init_up_char(announcement):
                     UP_CHAR.append(UpEvent(star=int(star), operators=up_char_lst, zoom=0))
                 else:
                     UP_ARMS.append(UpEvent(star=int(star), operators=up_char_lst, zoom=0))
-    return _CURRENT_CHAR_POOL_TITLE, _CURRENT_ARMS_POOL_TITLE, POOL_IMG, UP_CHAR, UP_ARMS
+    return POOL_TIME, _CURRENT_CHAR_POOL_TITLE, _CURRENT_ARMS_POOL_TITLE, POOL_IMG, UP_CHAR, UP_ARMS
 
 
 def is_number(s) -> bool:

@@ -18,6 +18,7 @@ announcement = PrettyAnnouncement()
 ALL_CHAR = []
 ALL_CARD = []
 
+POOL_TIME = ""
 _CURRENT_CHAR_POOL_TITLE = ""
 _CURRENT_CARD_POOL_TITLE = ""
 UP_CHAR = []
@@ -50,8 +51,10 @@ async def pretty_draw(count: int, pool_name):
 async def get_gacha_pool(pool_name):
     if pool_name == 'card':
         msg_head = '育成'
+        _img = POOL_IMG[1]
     else:
         msg_head = '马娘'
+        _img = POOL_IMG[0]
     up_type = []
     up_list = []
     title = ''
@@ -68,22 +71,22 @@ async def get_gacha_pool(pool_name):
                 up_list.append(operator.split(']')[1] if pool_name == 'char' else operator)
             if x.star == 3:
                 if pool_name == 'char':
-                    tmp += f'三星UP：{" ".join(x.operators)} \n'
+                    tmp += f'三星UP：{" & ".join(x.operators)} \n'
                 else:
-                    tmp += f'SSR UP：{" ".join(x.operators)} \n'
+                    tmp += f'SSR UP：{" & ".join(x.operators)} \n'
             elif x.star == 2:
                 if pool_name == 'char':
-                    tmp += f'二星UP：{" ".join(x.operators)} \n'
+                    tmp += f'二星UP：{" & ".join(x.operators)} \n'
                 else:
-                    tmp += f'SR UP：{" ".join(x.operators)} \n'
+                    tmp += f'SR UP：{" & ".join(x.operators)} \n'
             elif x.star == 1:
                 if pool_name == 'char':
-                    tmp += f'一星UP：{" ".join(x.operators)} '
+                    tmp += f'一星UP：{" & ".join(x.operators)} '
                 else:
-                    tmp += f'R UP：{" ".join(x.operators)} '
+                    tmp += f'R UP：{" & ".join(x.operators)} '
     tmp = tmp[:-1] if tmp and tmp[-1] == '\n' else tmp
-    pool_info = f'当前{msg_head}卡池：\n{title}\n{tmp}' if title else ''
-    return pool_info
+    pool_info = f'{_img} 当前{msg_head}卡池：\n{tmp}' if title else ''
+    return pool_info, POOL_TIME
 
 async def update_pretty_info():
     global ALL_CHAR, ALL_CARD
@@ -96,6 +99,7 @@ async def update_pretty_info():
     if code == 200:
         ALL_CARD = init_game_pool('pretty_card', data, PrettyChar)
     await _pretty_init_up_char()
+    return f'当前池子时间：\n{POOL_TIME}\n当前UP池子：\n{POOL_IMG[0]} {_CURRENT_CHAR_POOL_TITLE}\n{POOL_IMG[1]} {_CURRENT_CARD_POOL_TITLE}'
 
 async def init_pretty_data():
     global ALL_CHAR, ALL_CARD
@@ -141,11 +145,11 @@ def _get_pretty_card(pool_name: str, mode: int = 1):
 
 # 获取up和概率
 async def _pretty_init_up_char():
-    global _CURRENT_CHAR_POOL_TITLE, _CURRENT_CARD_POOL_TITLE, UP_CHAR, UP_CARD, POOL_IMG
-    _CURRENT_CHAR_POOL_TITLE, _CURRENT_CARD_POOL_TITLE, POOL_IMG, UP_CHAR, UP_CARD = await init_up_char(announcement)
+    global POOL_TIME, _CURRENT_CHAR_POOL_TITLE, _CURRENT_CARD_POOL_TITLE, UP_CHAR, UP_CARD, POOL_IMG
+    POOL_TIME, _CURRENT_CHAR_POOL_TITLE, _CURRENT_CARD_POOL_TITLE, POOL_IMG, UP_CHAR, UP_CARD = await init_up_char(announcement)
 
 
 async def reload_pretty_pool():
     await _pretty_init_up_char()
-    return f'当前UP池子：{_CURRENT_CHAR_POOL_TITLE} & {_CURRENT_CARD_POOL_TITLE} {POOL_IMG}'
+    return f'当前池子时间：\n{POOL_TIME}\n当前UP池子：\n{POOL_IMG[0]} {_CURRENT_CHAR_POOL_TITLE}\n{POOL_IMG[1]} {_CURRENT_CARD_POOL_TITLE}'
 

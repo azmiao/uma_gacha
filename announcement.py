@@ -33,7 +33,7 @@ def is_expired(data: dict):
 # 检查写入
 def check_write(data: dict, up_char_file):
     try:
-        if not is_expired(data['char']):
+        if is_expired(data['char']):
             for x in list(data.keys()):
                 data[x]['title'] = ''
         else:
@@ -73,8 +73,11 @@ class PrettyAnnouncement:
                     if title.find('支援卡卡池') != -1:
                         url = a['href']
                         break
+                    elif title.find('支援卡登场') != -1:
+                        url = a['href']
+                        break
             async with session.get(f'https://wiki.biligame.com/{url}', timeout=7) as res:
-                return await res.text(), title[:-2]
+                return await res.text()
 
     async def update_up_char(self):
         data = {
@@ -82,13 +85,11 @@ class PrettyAnnouncement:
             'card': {'up_char': {'3': {}, '2': {}, '1': {}}, 'title': '', 'time': '', 'pool_img': ''}
         }
         try:
-            text, title = await self._get_announcement_text()
+            text= await self._get_announcement_text()
             soup = BeautifulSoup(text, 'lxml')
             context = soup.find('div', {'class': 'toc-sticky'})
             if not context:
                 context = soup.find('div', {'class': 'mw-parser-output'})
-            data['char']['title'] = title
-            data['card']['title'] = title
             for big in context.find_all('big'):
                 r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}', str(big.text))
                 if r:
@@ -103,25 +104,15 @@ class PrettyAnnouncement:
             data['card']['time'] = time
             for p in context.find_all('p'):
                 if str(p).find('当期UP赛马娘') != -1 and str(p).find('■') != -1:
-                    if not data['char']['pool_img']:
-                        try:
-                            data['char']['pool_img'] = p.find('img')['src']
-                        except TypeError:
-                            for center in context.find_all('center'):
-                                try:
-                                    img = center.find('img')
-                                    if img and str(img['alt']).find('新马娘') != -1 and str(img['alt']).find('总览') == 1:
-                                        data['char']['pool_img'] = img['src']
-                                except (TypeError, KeyError):
-                                    pass
                     r = re.findall(r'.*?当期UP赛马娘([\s\S]*)＜奖励内容＞.*?', str(p))
                     if r:
                         for x in r:
                             x = str(x).split('\n')
                             for msg in x:
                                 if msg.find('★') != -1:
-                                    msg = msg.replace('<br/>', '')
+                                    msg = msg.replace('<br />', '')
                                     char_name = msg[msg.find('['):].strip()
+                                    char_name = char_name.replace('<br/>', '')
                                     if (star := len(msg[:msg.find('[')].strip())) == 3:
                                         data['char']['up_char']['3'][char_name] = '70'
                                     elif star == 2:
@@ -129,7 +120,6 @@ class PrettyAnnouncement:
                                     elif star == 1:
                                         data['char']['up_char']['1'][char_name] = '70'
                 if str(p).find('（当期UP对象）') != -1 and str(p).find('赛马娘') == -1 and str(p).find('■') != -1:
-                    # data['card']['pool_img'] = p.find('img')['src']
                     if not data['char']['pool_img']:
                         try:
                             data['char']['pool_img'] = p.find('img')['src']
@@ -141,9 +131,10 @@ class PrettyAnnouncement:
                                         data['card']['pool_img'] = img['src']
                                 except (TypeError, KeyError):
                                     pass
-                    r = re.search(r'■全?新?支援卡（当期UP对象）([\s\S]*)</p>', str(p))
+                    r = re.search(r'■ ?全?新?支援卡（当期UP对象）([\s\S]*)</p>', str(p))
                     if r:
                         rmsg = r.group(1).strip()
+                        rmsg = rmsg.replace('<br />', '<br/>')
                         rmsg = rmsg.split('<br/>')
                         rmsg = [x for x in rmsg if x]
                         for x in rmsg:
@@ -156,6 +147,15 @@ class PrettyAnnouncement:
                                 data['card']['up_char']['2'][char_name] = '70'
                             if star == 'R':
                                 data['card']['up_char']['1'][char_name] = '70'
+            char_up_list = list(data['char']['up_char']['3'].keys())
+            card_up_list = list(data['card']['up_char']['3'].keys())
+            data['char']['title'] = '赛马娘：' + ' & '.join(str(x) for x in char_up_list)
+            data['card']['title'] = '支援卡：' + ' & '.join(str(y) for y in card_up_list)
+            img_url_list = []
+            for center_img in context.find_all('center'):
+                img_url_list.append(center_img.find('img')['src'])
+            data['char']['pool_img'] = img_url_list[1]
+            data['card']['pool_img'] = img_url_list[2]
             # 日文->中文
             with open(DRAW_PATH + 'pretty_card.json', 'r', encoding='utf8') as f:
                 all_data = json.load(f)
