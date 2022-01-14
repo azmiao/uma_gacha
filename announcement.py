@@ -1,6 +1,9 @@
 import aiohttp
+import os
+import pickle
 from bs4 import BeautifulSoup
 import re
+import requests
 from datetime import datetime
 from .config import DRAW_PATH
 from pathlib import Path
@@ -33,7 +36,7 @@ def is_expired(data: dict):
 # 检查写入
 def check_write(data: dict, up_char_file):
     try:
-        if is_expired(data['char']):
+        if not is_expired(data['char']):
             for x in list(data.keys()):
                 data[x]['title'] = ''
         else:
@@ -76,8 +79,10 @@ class PrettyAnnouncement:
                     elif title.find('支援卡登场') != -1:
                         url = a['href']
                         break
-            async with session.get(f'https://wiki.biligame.com/{url}', timeout=7) as res:
-                return await res.text()
+            # async with session.get(f'https://wiki.biligame.com/{url}', timeout=7) as res:
+            #     return await res.text()
+            text = requests.get(f'https://wiki.biligame.com/{url}', timeout=7)
+            return text.text
 
     async def update_up_char(self):
         data = {
@@ -90,18 +95,26 @@ class PrettyAnnouncement:
             context = soup.find('div', {'class': 'toc-sticky'})
             if not context:
                 context = soup.find('div', {'class': 'mw-parser-output'})
-            for big in context.find_all('big'):
-                r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}', str(big.text))
-                if r:
-                    time = str(big.text)
-                    break
+            if context('big'):
+                for big in context.find_all('big'):
+                    r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}', str(big.text))
+                    if r:
+                        time = str(big.text)
+                        break
             else:
-                logger.info('赛马娘UP无法找到活动日期....取消更新UP池子...')
-                return
+                for p in context.find_all('p'):
+                    r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}', str(p.text))
+                    if r:
+                        time = str(p.text)
+                        break
+                else:
+                    logger.info('赛马娘UP无法找到活动日期....取消更新UP池子...')
+                    return
             time = time.replace('～', '-').replace('/', '月').split(' ')
             time = time[0] + '日 ' + time[1] + ' - ' + time[3] + '日 ' + time[4]
             data['char']['time'] = time
             data['card']['time'] = time
+            flag = 0
             for p in context.find_all('p'):
                 if str(p).find('当期UP赛马娘') != -1 and str(p).find('■') != -1:
                     r = re.findall(r'.*?当期UP赛马娘([\s\S]*)＜奖励内容＞.*?', str(p))
@@ -119,54 +132,43 @@ class PrettyAnnouncement:
                                         data['char']['up_char']['2'][char_name] = '70'
                                     elif star == 1:
                                         data['char']['up_char']['1'][char_name] = '70'
-                if str(p).find('（当期UP对象）') != -1 and str(p).find('赛马娘') == -1 and str(p).find('■') != -1:
-                    if not data['char']['pool_img']:
-                        try:
-                            data['char']['pool_img'] = p.find('img')['src']
-                        except TypeError:
-                            for center in context.find_all('center'):
-                                try:
-                                    img = center.find('img')
-                                    if img and str(img['alt']).find('新卡') != -1 and str(img['alt']).find('总览') == 1:
-                                        data['card']['pool_img'] = img['src']
-                                except (TypeError, KeyError):
-                                    pass
-                    r = re.search(r'■ ?全?新?支援卡（当期UP对象）([\s\S]*)</p>', str(p))
+                elif str(p).find('全部赛马娘') != -1:
+                    flag = 1
+                    current_dir = os.path.join(os.path.dirname(__file__), 'char_atlas.txt')
+                    with open(current_dir, 'rb') as f:
+                        char_list = pickle.load(f)
+                    for char in char_list:
+                        if int(char.star) == 3:
+                            data['char']['up_char']['3'][str(char.name)] = '70'
+                if (str(p).find('（当期UP对象）') != -1 or str(p).find('（概率UP对象）') == -1) and str(p).find('■') != -1:
+                    r = re.search(r'■ ?全?新?(登场的)?支援卡（(当期|概率)(UP|up)对象）([\s\S]*)</p>', str(p))
                     if r:
-                        rmsg = r.group(1).strip()
+                        rmsg = r.group(4).strip()
                         rmsg = rmsg.replace('<br />', '<br/>')
                         rmsg = rmsg.split('<br/>')
                         rmsg = [x for x in rmsg if x]
                         for x in rmsg:
-                            x = x.replace('\n', '').replace('・', '')
-                            star = x[:x.find('[')].strip()
-                            char_name = x[x.find('['):].strip()
+                            x = x.replace('\n', '').replace('・', '').replace('·', '').replace('[', '【').replace(']', '】')
+                            star = x[:x.find('【')].strip()
+                            card_name = x[x.find('【'):].strip()
                             if star == 'SSR':
-                                data['card']['up_char']['3'][char_name] = '70'
+                                data['card']['up_char']['3'][card_name] = '70'
                             if star == 'SR':
-                                data['card']['up_char']['2'][char_name] = '70'
+                                data['card']['up_char']['2'][card_name] = '70'
                             if star == 'R':
-                                data['card']['up_char']['1'][char_name] = '70'
+                                data['card']['up_char']['1'][card_name] = '70'
             char_up_list = list(data['char']['up_char']['3'].keys())
             card_up_list = list(data['card']['up_char']['3'].keys())
-            data['char']['title'] = '赛马娘：' + ' & '.join(str(x) for x in char_up_list)
+            if flag == 0:
+                data['char']['title'] = '赛马娘：' + ' & '.join(str(x) for x in char_up_list)
+            elif flag == 1:
+                data['char']['title'] = '赛马娘：全赛马娘UP'
             data['card']['title'] = '支援卡：' + ' & '.join(str(y) for y in card_up_list)
             img_url_list = []
             for center_img in context.find_all('center'):
                 img_url_list.append(center_img.find('img')['src'])
             data['char']['pool_img'] = img_url_list[1]
             data['card']['pool_img'] = img_url_list[2]
-            # 日文->中文
-            with open(DRAW_PATH + 'pretty_card.json', 'r', encoding='utf8') as f:
-                all_data = json.load(f)
-            for star in data['card']['up_char'].keys():
-                for name in list(data['card']['up_char'][star].keys()):
-                    char_name = name.split(']')[1].strip()
-                    tp_name = name[name.find('['): name.find(']') + 1].strip().replace('[', '【').replace(']', '】')
-                    for x in all_data.keys():
-                        if all_data[x]['名称'].find(tp_name) != -1 and all_data[x]['关联角色'] == char_name:
-                            data['card']['up_char'][star].pop(name)
-                            data['card']['up_char'][star][all_data[x]['中文名']] = '70'
         except TimeoutError:
             logger.info(f'更新赛马娘UP池信息超时...')
             if pretty_up_char.exists():

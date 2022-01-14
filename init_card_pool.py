@@ -1,6 +1,7 @@
 from typing import Any
 from .config import DRAW_PATH
 from pathlib import Path
+from .util import remove_prohibited_str
 try:
     import ujson as json
 except ModuleNotFoundError:
@@ -19,7 +20,7 @@ def init_game_pool(game: str, data: dict, Operator: Any):
                 limited = True
             if not data[key]['获取方式']:
                 limited = False
-            tmp_lst.append(Operator(name=data[key]['中文名'], star=len(data[key]['稀有度']), limited=limited))
+            tmp_lst.append(Operator(name=remove_prohibited_str(data[key]['中文名']), star=len(data[key]['稀有度']), limited=limited))
 
     up_char_file = Path(f'{DRAW_PATH}/draw_card_up/{game.split("_")[0]}_up_char.json')
     char_name_lst = [x.name for x in tmp_lst]

@@ -1,4 +1,6 @@
 from hoshino.typing import MessageSegment
+import os
+import pickle
 from .announcement import PrettyAnnouncement
 from .update_game_info import update_info
 from .util import init_star_rst, generate_img, max_card, BaseData, \
@@ -61,6 +63,9 @@ async def get_gacha_pool(pool_name):
     if pool_name == 'char' and _CURRENT_CHAR_POOL_TITLE:
         up_type = UP_CHAR
         title = _CURRENT_CHAR_POOL_TITLE
+        if title == '赛马娘：全赛马娘UP':
+            pool_info = f'{_img} 当前{msg_head}卡池：全赛马娘UP'
+            return pool_info, POOL_TIME
     elif pool_name == 'card' and _CURRENT_CARD_POOL_TITLE:
         up_type = UP_CARD
         title = _CURRENT_CARD_POOL_TITLE
@@ -94,6 +99,9 @@ async def update_pretty_info():
     data, code = await update_info(url, 'pretty')
     if code == 200:
         ALL_CHAR = init_game_pool('pretty', data, PrettyChar)
+        current_dir = os.path.join(os.path.dirname(__file__), 'char_atlas.txt')
+        with open(current_dir, 'wb') as f:
+            pickle.dump(ALL_CHAR, f)
     url = 'https://wiki.biligame.com/umamusume/支援卡图鉴'
     data, code = await update_info(url, 'pretty_card')
     if code == 200:
@@ -103,9 +111,9 @@ async def update_pretty_info():
 
 async def init_pretty_data():
     global ALL_CHAR, ALL_CARD
-    with open(DRAW_PATH + 'pretty.json', 'r', encoding='utf8') as f:
+    with open(f'{DRAW_PATH}/pretty.json', 'r', encoding='utf8') as f:
         pretty_char_dict = json.load(f)
-    with open(DRAW_PATH + 'pretty_card.json', 'r', encoding='utf8') as f:
+    with open(f'{DRAW_PATH}/pretty_card.json', 'r', encoding='utf8') as f:
         pretty_card_dict = json.load(f)
     ALL_CHAR = init_game_pool('pretty', pretty_char_dict, PrettyChar)
     ALL_CARD = init_game_pool('pretty_card', pretty_card_dict, PrettyChar)
@@ -134,7 +142,8 @@ def _get_pretty_card(pool_name: str, mode: int = 1):
             all_up_star = [x.operators for x in up_data if x.star == star][0]
             acquire_operator = random.choice(all_up_star)
             if pool_name == 'char':
-                acquire_operator = acquire_operator.split(']')[1]
+                acquire_operator = acquire_operator.split(']')[0]
+            # print([x for x in data if x.name == acquire_operator])
             acquire_operator = [x for x in data if x.name == acquire_operator][0]
         else:
             acquire_operator = random.choice([x for x in data if x.star == star and not x.limited])

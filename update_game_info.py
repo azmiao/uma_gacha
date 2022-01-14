@@ -1,11 +1,11 @@
 #coding:utf-8
 import aiohttp
+import requests
 from .config import DRAW_PATH
 from asyncio.exceptions import TimeoutError
 from bs4 import BeautifulSoup
-from .util import download_img
+from .util import download_img, remove_prohibited_str
 from urllib.parse import unquote
-from .util import remove_prohibited_str
 import hoshino
 from hoshino import log
 import bs4
@@ -21,47 +21,54 @@ headers = {'User-Agent': '"Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Te
 
 async def update_info(url: str, game_name: str, info_list: list = None):
     try:
-        with open(DRAW_PATH + f'{game_name}.json', 'r', encoding='utf8') as f:
+        with open(f'{DRAW_PATH}/{game_name}.json', 'r', encoding='utf8') as f:
             data = json.load(f)
     except (ValueError, FileNotFoundError):
         data = {}
     try:
         async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url, timeout=7) as response:
-                soup = BeautifulSoup(await response.text(), 'lxml')
-                _tbody = get_tbody(soup, game_name, url)
-                trs = _tbody.find_all('tr')
-                att_dict = {'头像': 0, '名称': 1}
-                start_index = 2
-                index = 2
-                for th in trs[0].find_all('th')[start_index:]:
-                    text = th.text
-                    if text[-1] == '\n':
-                        text = text[:-1]
-                    att_dict[text] = index
-                    index += 1
-                for tr in trs[1:]:
-                    member_dict = {}
-                    tds = tr.find_all('td')
-                    if not info_list:
-                        info_list = att_dict.keys()
-                    for key in info_list:
+            response = requests.get(url, timeout=7)
+            soup = BeautifulSoup(response.text, 'lxml')
+            _tbody = get_tbody(soup, game_name, url)
+            trs = _tbody.find_all('tr')
+            att_dict = {'头像': 0, '名称': 1}
+            start_index = 2
+            index = 2
+            for th in trs[0].find_all('th')[start_index:]:
+                text = th.text
+                if text[-1] == '\n':
+                    text = text[:-1]
+                att_dict[text] = index
+                index += 1
+            for tr in trs[1:]:
+                member_dict = {}
+                tds = tr.find_all('td')
+                if not info_list:
+                    info_list = att_dict.keys()
+                for key in info_list:
+                    if key == '名称' and game_name == 'pretty':
+                        last_tag = get_name(td, attr)
+                    else:
                         attr = ''
                         td = tds[att_dict[key]]
                         last_tag = unquote(_find_last_tag(td, attr, game_name), 'utf-8')
-                        member_dict[key] = last_tag
-                        member_dict = intermediate_check(member_dict, key, game_name, td)
-                    avatar_img = await _modify_avatar_url(session, game_name, member_dict["名称"])
-                    member_dict['头像'] = avatar_img if avatar_img else member_dict['头像']
+                    member_dict[key] = last_tag
+                    member_dict = intermediate_check(member_dict, key, game_name, td)
+                avatar_img = await _modify_avatar_url(session, game_name, member_dict["名称"])
+                member_dict['头像'] = avatar_img if avatar_img else member_dict['头像']
+                if game_name == 'pretty_card':
                     member_dict, name = replace_update_name(member_dict, game_name)
-                    await download_img(member_dict['头像'], game_name, name)
-                    data[name] = member_dict
-                    logger.info(f'{name} is update...')
+                elif game_name == 'pretty':
+                    name = member_dict['名称']
+                    name = remove_prohibited_str(name)
+                await download_img(member_dict['头像'], game_name, name)
+                data[name] = member_dict
+                logger.info(f'{name} is update...')
             data = await _last_check(data, game_name, session)
     except TimeoutError:
         logger.info(f'更新 {game_name} 超时...')
         return {}, 999
-    with open(DRAW_PATH + f'{game_name}.json', 'w', encoding='utf8') as wf:
+    with open(f'{DRAW_PATH}/{game_name}.json', 'w', encoding='utf8') as wf:
         wf.write(json.dumps(data, ensure_ascii=False, indent=4))
     return data, 200
 
@@ -93,6 +100,24 @@ def _find_last_tag(element: bs4.element.Tag, attr: str, game_name: str) -> str:
 
     return last_tag
 
+# 拿到名称
+def get_name(element: bs4.element.Tag, attr: str):
+    last_tag = []
+    for des in element.descendants:
+        last_tag.append(des)
+    return last_tag[0]['title']
+
+# 育成卡换中文
+def replace_update_name(member_dict: dict, game_name: str):
+    name = member_dict['名称']
+    if game_name == 'pretty_card':
+        name = member_dict['中文名']
+        name = remove_prohibited_str(name)
+        member_dict['中文名'] = name
+    else:
+        name = remove_prohibited_str(name)
+        member_dict['名称'] = name
+    return member_dict, name
 
 # 获取大图（小图快爬）
 async def _modify_avatar_url(session: aiohttp.ClientSession, game_name: str, char_name: str):
@@ -111,7 +136,7 @@ async def _last_check(data: dict, game_name: str, session: aiohttp.ClientSession
                 r = re.search(r'.*?40px-(.*)图标.png', str(data[keys][key]))
                 if r:
                     data[keys][key] = r.group(1)
-                    logger.info(f'赛马娘额外修改数据...{keys}[{key}]=> {r.group(1)}')
+                    # logger.info(f'赛马娘额外修改数据...{keys}[{key}]=> {r.group(1)}')
     return data
 
 
@@ -128,18 +153,6 @@ def intermediate_check(member_dict: dict, key: str, game_name: str, td: bs4.elem
                     obtain.append(x)
             member_dict['获取方式'] = obtain
     return member_dict
-
-# 拿到名称
-def replace_update_name(member_dict: dict, game_name: str):
-    name = member_dict['名称']
-    if game_name == 'pretty_card':
-        name = member_dict['中文名']
-        name = remove_prohibited_str(name)
-        member_dict['中文名'] = name
-    else:
-        name = remove_prohibited_str(name)
-        member_dict['名称'] = name
-    return member_dict, name
 
 
 # 拿到tbody，不同游戏tbody可能不同

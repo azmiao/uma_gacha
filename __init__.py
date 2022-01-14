@@ -1,15 +1,28 @@
 from .pretty_handle import update_pretty_info, pretty_draw, reload_pretty_pool, get_gacha_pool
 import hoshino
 import asyncio
-from hoshino import Service, priv
+import os
+from hoshino import Service, priv, log
 from .config import check_config
 from .async_update_game_info import async_update_game
 from .util import _check_dir
 
-check_config()
-loop = asyncio.get_event_loop()
-loop.run_until_complete(async_update_game())
-_check_dir()
+logger = log.new_logger('announcement', hoshino.config.DEBUG)
+
+try:
+    check_config()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_update_game())
+    _check_dir()
+    if not os.path.exists(os.path.join(os.path.dirname(__file__), 'char_atlas.txt')):
+        logger.info('检测到本地图鉴信息不存在，即将开始创建...')
+        try:
+            loop.run_until_complete(update_pretty_info())
+        except Exception as e:
+            logger.info(f'马娘信息更新失败：{e}')
+
+except Exception as e:
+    logger.warn(f'错误原因：{e}')
 
 sv_help = '''=====功能=====
 （@bot就是@机器人）

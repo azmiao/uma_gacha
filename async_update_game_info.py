@@ -10,7 +10,7 @@ logger = log.new_logger('async_update_game_info', hoshino.config.DEBUG)
 async def async_update_game():
     tasks = []
     init_lst = [init_pretty_data]
-    if not os.path.exists(DRAW_PATH + 'pretty.json') or not os.path.exists(DRAW_PATH + 'pretty_card.json'):
+    if not os.path.exists(f'{DRAW_PATH}/pretty.json') or not os.path.exists(f'{DRAW_PATH}/pretty_card.json'):
         tasks.append(asyncio.ensure_future(update_pretty_info()))
         init_lst.remove(init_pretty_data)
     try:
