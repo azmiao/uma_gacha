@@ -73,7 +73,7 @@ async def get_gacha_pool(pool_name):
     if up_type:
         for x in up_type:
             for operator in x.operators:
-                up_list.append(operator.split(']')[1] if pool_name == 'char' else operator)
+                up_list.append(operator.split(']')[0] if pool_name == 'char' else operator)
             if x.star == 3:
                 if pool_name == 'char':
                     tmp += f'三星UP：{" & ".join(x.operators)} \n'

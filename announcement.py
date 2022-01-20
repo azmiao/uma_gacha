@@ -97,20 +97,22 @@ class PrettyAnnouncement:
                 context = soup.find('div', {'class': 'mw-parser-output'})
             if context('big'):
                 for big in context.find_all('big'):
-                    r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}', str(big.text))
+                    r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2} ～', str(big.text))
                     if r:
                         time = str(big.text)
                         break
             else:
                 for p in context.find_all('p'):
-                    r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2}', str(p.text))
+                    r = re.search(r'\d{1,2}/\d{1,2} \d{1,2}:\d{1,2} ～', str(p.text))
                     if r:
                         time = str(p.text)
                         break
                 else:
                     logger.info('赛马娘UP无法找到活动日期....取消更新UP池子...')
                     return
-            time = time.replace('～', '-').replace('/', '月').split(' ')
+            if '北京时间' in time:
+                time = re.match(r'([\s\S]*)（', time).group().replace('（', '')
+            time = time.replace('\n', '').replace('～', '-').replace('/', '月').split(' ')
             time = time[0] + '日 ' + time[1] + ' - ' + time[3] + '日 ' + time[4]
             data['char']['time'] = time
             data['card']['time'] = time
@@ -132,6 +134,24 @@ class PrettyAnnouncement:
                                         data['char']['up_char']['2'][char_name] = '70'
                                     elif star == 1:
                                         data['char']['up_char']['1'][char_name] = '70'
+                elif str(p).find('新登场的育成赛马娘') != -1 and str(p).find('■') != -1:
+                    r = re.findall(r'.*?（概率提升对象）([\s\S]*)■.*?', str(p))
+                    if r:
+                        for x in r:
+                            x = str(x).split('\n')
+                            for msg in x:
+                                if msg.find('★') != -1:
+                                    msg = msg.replace('<br />', '')
+                                    char_name = msg[msg.find('['):].strip()
+                                    char_name = char_name.replace('<br/>', '')
+                                    if '（' in char_name and '）' in char_name:
+                                        char_name = re.search(r'】([\s\S]*)', char_name).group().replace('）', '').replace('】', '')
+                                    if (star := len(msg[:msg.find('[')].strip())) == 3:
+                                        data['char']['up_char']['3'][char_name] = '70'
+                                    elif star == 2:
+                                        data['char']['up_char']['2'][char_name] = '70'
+                                    elif star == 1:
+                                        data['char']['up_char']['1'][char_name] = '70'
                 elif str(p).find('全部赛马娘') != -1:
                     flag = 1
                     current_dir = os.path.join(os.path.dirname(__file__), 'char_atlas.txt')
@@ -140,8 +160,8 @@ class PrettyAnnouncement:
                     for char in char_list:
                         if int(char.star) == 3:
                             data['char']['up_char']['3'][str(char.name)] = '70'
-                if (str(p).find('（当期UP对象）') != -1 or str(p).find('（概率UP对象）') == -1) and str(p).find('■') != -1:
-                    r = re.search(r'■ ?全?新?(登场的)?支援卡（(当期|概率)(UP|up)对象）([\s\S]*)</p>', str(p))
+                if (str(p).find('（当期UP对象）') != -1 or str(p).find('（概率UP对象）') == -1 or str(p).find('（概率提升对象）') == -1) and str(p).find('■') != -1:
+                    r = re.search(r'■ ?全?新?(登场的)?支援卡（(当期|概率)(UP|up|提升)对象）([\s\S]*)</p>', str(p))
                     if r:
                         rmsg = r.group(4).strip()
                         rmsg = rmsg.replace('<br />', '<br/>')
@@ -151,6 +171,8 @@ class PrettyAnnouncement:
                             x = x.replace('\n', '').replace('・', '').replace('·', '').replace('[', '【').replace(']', '】')
                             star = x[:x.find('【')].strip()
                             card_name = x[x.find('【'):].strip()
+                            if '（' in card_name and '）' in card_name:
+                                card_name = re.search(r'（([\s\S]*)）', card_name).group().replace('（', '').replace('）', '')
                             if star == 'SSR':
                                 data['card']['up_char']['3'][card_name] = '70'
                             if star == 'SR':
@@ -174,8 +196,6 @@ class PrettyAnnouncement:
             if pretty_up_char.exists():
                 with open(pretty_up_char, 'r', encoding='utf8') as f:
                     data = json.load(f)
-        except Exception as e:
-            logger.info(f'赛马娘up更新未知错误 {type(e)}：{e}')
             if pretty_up_char.exists():
                 with open(pretty_up_char, 'r', encoding='utf8') as f:
                     data = json.load(f)
