@@ -120,19 +120,19 @@ async def uma_gacha_reload(bot, ev):
     await bot.send(ev, msg)
     await bot.send(ev, text)
 
-# # 每天四点重载赛马娘up卡池
-# @sv.scheduled_job('cron', hour='4', minute='00')
-# async def auto_update():
-#     bot = hoshino.get_bot()
-#     superid = hoshino.config.SUPERUSERS[0]
-#     sv.logger.info('正在重载赛马娘up卡池')
-#     try:
-#         reload_pretty_pool()
-#     except Exception as e:
-#         sv.logger.info(f'重载赛马娘up卡池失败，{e}')
-#         msg = f'重载赛马娘up卡池失败，{e}'
-#         await bot.send_private_msg(user_id=superid, message=msg)
-#         return
-#     sv.logger.info('重载赛马娘up卡池成功')
-#     msg = '重载赛马娘up卡池成功'
-#     await bot.send_private_msg(user_id=superid, message=msg)
+# 每天四点更新赛马娘up卡池
+@sv.scheduled_job('cron', hour='4', minute='00')
+async def auto_update():
+    bot = hoshino.get_bot()
+    superid = hoshino.config.SUPERUSERS[0]
+    sv.logger.info('正在更新赛马娘信息和up卡池')
+    try:
+        await update_pretty_info()
+    except Exception as e:
+        sv.logger.info(f'更新赛马娘信息和up卡池失败，{e}')
+        msg = f'更新赛马娘信息和up卡池失败，{e}'
+        await bot.send_private_msg(user_id=superid, message=msg)
+        return
+    sv.logger.info('更新赛马娘信息和up卡池成功')
+    msg = '更新赛马娘信息和up卡池成功'
+    await bot.send_private_msg(user_id=superid, message=msg)
