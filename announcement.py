@@ -127,7 +127,7 @@ class PrettyAnnouncement:
                                 if msg.find('★') != -1:
                                     msg = msg.replace('<br />', '')
                                     char_name = msg[msg.find('['):].strip()
-                                    char_name = char_name.replace('<br/>', '')
+                                    char_name = char_name.replace('<br/>', '').replace(']', '】').replace('[', '【')
                                     if (star := len(msg[:msg.find('[')].strip())) == 3:
                                         data['char']['up_char']['3'][char_name] = '70'
                                     elif star == 2:
