@@ -1,0 +1,7 @@
+pypinyin
+pickle
+bs4
+Pillow
+typing-extensions
+aiohttp
+datetime
