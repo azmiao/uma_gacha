@@ -11,7 +11,7 @@ logger = log.new_logger('config', hoshino.config.DEBUG)
 DRAW_PATH = R.img('uma_gacha').path
 
 if not os.path.exists(DRAW_PATH):
-    os.mkdir('./res/img/uma_gacha')
+    os.mkdir(f'{DRAW_PATH}')
     os.mkdir(f'{DRAW_PATH}/draw_card')
     os.mkdir(f'{DRAW_PATH}/draw_card/pretty')
     os.mkdir(f'{DRAW_PATH}/draw_card_up')
