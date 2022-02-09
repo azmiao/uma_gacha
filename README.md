@@ -31,6 +31,10 @@
 
 卡池受限于biliwiki的公告更新速度，一般大佬们会在晚上更新公告，因此插件会在卡池更新后的第二天凌晨4点自动更新数据
 
+### 可能遇到的问题
+
+由于卡池信息和图鉴信息不同步，如果在卡池更新当天晚上22点后到第二天4点自动更新前重启过hoshino，会导致第二天的4点检测不到卡池更新，因此请使用命令 "更新马娘信息" 来手动更新图鉴
+
 ## 项目地址：
 https://github.com/azmiao/uma_gacha
 
@@ -57,16 +61,16 @@ https://www.594594.xyz/2022/02/05/uma_gacha_for_hoshino/
 
 1. 下载或git clone本插件：
 
-在 HoshinoBot\hoshino\modules 目录下使用以下命令拉取本项目
-```
-git clone https://github.com/azmiao/uma_gacha
-```
+    在 HoshinoBot\hoshino\modules 目录下使用以下命令拉取本项目
+    ```
+    git clone https://github.com/azmiao/uma_gacha
+    ```
 
 2. 安装依赖，不一定全，请视自己日志是否报错然后补全：
-```
-pip install -r requirements.txt
-```
+    ```
+    pip install -r requirements.txt
+    ```
 
 3. 在 HoshinoBot\hoshino\config\ `__bot__.py` 文件的 MODULES_ON 加入 'uma_gacha'
 
-然后重启 HoshinoBot即可，会自动检测文件和更新数据的，自动更新完方可使用，详情请看hoshino的日志，若有报错请看看是否有什么依赖没有装，如若依赖没有问题仍报错，请反馈bug
+    然后重启 HoshinoBot即可，会自动检测文件和更新数据的，自动更新完方可使用，详情请看hoshino的日志，若有报错请看看是否有什么依赖没有装，如若依赖没有问题仍报错，请反馈bug
