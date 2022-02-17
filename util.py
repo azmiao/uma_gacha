@@ -72,14 +72,14 @@ async def generate_img(card_set: Union[Set[BaseData], List[BaseData]], game_name
         pyname = cn2py(x.name)
         img_list.append(DRAW_PATH + f'/draw_card/{game_name}/{pyname}.png')
     img_len = len(img_list)
-    w = 100 * 10
-    if img_len <= 10:
+    w = 100 * 5
+    if img_len <= 5:
         w = 100 * img_len
         h = 100
-    elif img_len % 10 == 0:
-        h = 100 * int(img_len / 10)
+    elif img_len % 5 == 0:
+        h = 100 * int(img_len / 5)
     else:
-        h = 100 * int(img_len / 10) + 100
+        h = 100 * int(img_len / 5) + 100
     card_img = await asyncio.get_event_loop().run_in_executor(None, _pst, h, img_list, game_name, background_list)
     num = 0
     for n in star_list:
@@ -90,7 +90,7 @@ async def generate_img(card_set: Union[Set[BaseData], List[BaseData]], game_name
 
 
 def _pst(h: int, img_list: list, game_name: str, background_list: list):
-    card_img = CreateImg(100 * 10, h, 100, 100)
+    card_img = CreateImg(100 * 5, h, 100, 100)
     idx = 0
     for img in img_list:
         try:
