@@ -3,6 +3,8 @@
 
 ### 【重要】插件移植自[@HibiKier](https://github.com/HibiKier)大佬的[nonebot插件](https://github.com/HibiKier/nonebot_plugin_gamedraw)
 
+### 补充，本插件现已被合并到[马娘整合插件](https://github.com/azmiao/uma_plugin)里
+
 在原有基础上持续适配卡池，biliwiki的公告页面布局老是变2333，b站wiki的ui也有变化，导致得一直适配，部分wiki内容我也有在更改，图鉴缺少的内容我也补上了，新年祈愿一下后续稍微平稳一点hhhh（
 
 插件后续将持续更新，其他马娘插件也在绝赞开发中（大概
